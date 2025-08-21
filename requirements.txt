@@ -1,0 +1,6 @@
+pandas
+pyodbc
+Requests
+SQLAlchemy
+python-dotenv
+azure-functions
