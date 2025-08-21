@@ -16,25 +16,27 @@ def main(mytimer: func.TimerRequest) -> None:
         "FROM dbo.ALVYS_CLIENTS"
     )
 
-    # Connection string handled by db.get_conn()
-    with db.get_conn() as conn:
-        cur = conn.cursor()
+    # Fetch all client credentials using a single connection/cursor
+    with db.get_conn() as conn, conn.cursor() as cur:
         cur.execute(query)
         rows = cur.fetchall()
 
-    for scac, tenant_id, client_id, client_secret, grant_type in rows:
-        creds: Dict[str, str] = {
-            "tenant_id": tenant_id,
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "grant_type": grant_type,
-        }
+        for scac, tenant_id, client_id, client_secret, grant_type in rows:
+            try:
+                creds: Dict[str, str] = {
+                    "tenant_id": tenant_id,
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "grant_type": grant_type,
+                }
 
-        os.environ["ALVYS_TENANT_ID"] = creds["tenant_id"]
-        os.environ["ALVYS_CLIENT_ID"] = creds["client_id"]
-        os.environ["ALVYS_CLIENT_SECRET"] = creds["client_secret"]
-        os.environ["ALVYS_GRANT_TYPE"] = creds["grant_type"]
+                os.environ["ALVYS_TENANT_ID"] = creds["tenant_id"]
+                os.environ["ALVYS_CLIENT_ID"] = creds["client_id"]
+                os.environ["ALVYS_CLIENT_SECRET"] = creds["client_secret"]
+                os.environ["ALVYS_GRANT_TYPE"] = creds["grant_type"]
 
-        logging.info("Processing %s", scac)
-        run_export(scac, ENTITIES, weeks_ago=0, dry_run=False)
-        run_insert(scac, ENTITIES, dry_run=False)
+                logging.info("Processing %s", scac)
+                run_export(scac, ENTITIES, weeks_ago=0, dry_run=False)
+                run_insert(scac, ENTITIES, dry_run=False)
+            except Exception:
+                logging.exception("Failed processing %s", scac)
