@@ -27,15 +27,9 @@ ALVYS_CLIENT_ID="value"
 ALVYS_CLIENT_SECRET="value"
 ALVYS_GRANT_TYPE="value"
 
-# SQL Server (used by ingestion scripts)
-SQL_SERVER="value"
-SQL_DATABASE="value"
-SQL_USERNAME="value"
-SQL_PASSWORD="value"
+# SQL Server connection string
+ALVYS_SQL_CONN_STR="DRIVER={ODBC Driver 17 for SQL Server};SERVER=server;DATABASE=db;UID=user;PWD=pwd"
 ```
-
-The config module constructs the SQL Server connection string from the four
-variables above; no separate `ALVYS_SQL_CONN_STR` is needed.
 
 Place a copy of this file at the project root as `.env` and fill in the real
 values for your environment.

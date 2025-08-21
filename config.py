@@ -17,13 +17,12 @@ from typing import Dict
 from dotenv import load_dotenv  # type: ignore
 import pyodbc
 
+from db import get_conn
+
 load_dotenv()
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-# Name of the environment variable holding the full SQL Server connection str
-_CONN_ENV = "ALVYS_SQL_CONN_STR"
-
 # Table and columns that map SCAC -> auth credentials
 _TABLE = "dbo.ALVYS_CLIENTS"
 _COLS = ["TENANT_ID", "CLIENT_ID", "CLIENT_SECRET", "GRANT_TYPE"]
@@ -34,25 +33,8 @@ _COLS = ["TENANT_ID", "CLIENT_ID", "CLIENT_SECRET", "GRANT_TYPE"]
 # ---------------------------------------------------------------------------
 
 def _get_sql_connection() -> pyodbc.Connection:
-    """Return a live pyodbc connection using the env-defined conn string."""
-    conn_str = os.getenv(_CONN_ENV)
-    if not conn_str:
-        server = os.getenv("SQL_SERVER")
-        db = os.getenv("SQL_DATABASE")
-        user = os.getenv("SQL_USERNAME")
-        pwd = os.getenv("SQL_PASSWORD")
-        if not all([server, db, user, pwd]):
-            raise RuntimeError(
-                "Environment variables 'SQL_SERVER', 'SQL_DATABASE',"
-                " 'SQL_USERNAME', and 'SQL_PASSWORD' must be set with the "
-                "SQL Server connection details before running the pipeline."
-            )
-        conn_str = (
-            f"DRIVER={{ODBC Driver 17 for SQL Server}};SERVER={server};"
-            f"DATABASE={db};UID={user};PWD={pwd}"
-        )
-    # autocommit=False so callers can control transaction scope (BEGIN/ROLLBACK)
-    return pyodbc.connect(conn_str, autocommit=False, timeout=30)
+    """Return a live ``pyodbc`` connection using ``ALVYS_SQL_CONN_STR``."""
+    return get_conn()
 
 
 # ---------------------------------------------------------------------------
