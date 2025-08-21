@@ -1,11 +1,11 @@
 import os
-import json
 import pandas as pd
 import sys
 import time
 from datetime import datetime
 from typing import List, Dict
 from dotenv import load_dotenv  # type: ignore
+from utils.io import load_json, safe_datetime
 
 import db
 
@@ -16,24 +16,6 @@ load_dotenv()
 DATA_DIR = "alvys_weekly_data"
 BATCH_SIZE = 500
 SCHEMA = "TBXX"
-
-def load_json(filename: str) -> List[Dict]:
-    with open(os.path.join(DATA_DIR, filename), encoding="utf-8") as f:
-        return json.load(f)
-
-def safe_datetime(val):
-    if not val:
-        return None
-    s = val.replace("Z", "+00:00")
-    if "." in s and "+" in s:
-        prefix, rest = s.split(".", 1)
-        frac, offset = rest.split("+", 1)
-        frac6 = frac[:6].ljust(6, "0")
-        s = f"{prefix}.{frac6}+{offset}"
-    try:
-        return datetime.fromisoformat(s)
-    except Exception:
-        return None
 
 def sanitize_driver(d: Dict) -> Dict:
     return {
@@ -147,27 +129,39 @@ def main():
 
     if run_all or "trailers" in args:
         print("Loading trailers JSON...")
-        trailers = [sanitize_trailer(t) for t in load_json("TRAILERS.json")]
+        trailers = [
+            sanitize_trailer(t)
+            for t in load_json(os.path.join(DATA_DIR, "TRAILERS.json"))
+        ]
         batch_insert("TRAILERS_RAW", trailers, conn)
 
     if run_all or "trucks" in args:
         print("Loading trucks JSON...")
-        trucks = [sanitize_truck(t) for t in load_json("TRUCKS.json")]
+        trucks = [
+            sanitize_truck(t)
+            for t in load_json(os.path.join(DATA_DIR, "TRUCKS.json"))
+        ]
         batch_insert("TRUCKS_RAW", trucks, conn)
 
     if run_all or "drivers" in args:
         print("Loading drivers JSON...")
-        drivers = [sanitize_driver(d) for d in load_json("DRIVERS.json")]
+        drivers = [
+            sanitize_driver(d)
+            for d in load_json(os.path.join(DATA_DIR, "DRIVERS.json"))
+        ]
         batch_insert("DRIVERS_RAW", drivers, conn)
 
     if run_all or "customers" in args:
         print("Loading customers JSON...")
-        customers = [sanitize_customer(c) for c in load_json("CUSTOMERS.json")]
+        customers = [
+            sanitize_customer(c)
+            for c in load_json(os.path.join(DATA_DIR, "CUSTOMERS.json"))
+        ]
         batch_insert("CUSTOMERS_RAW", customers, conn)
 
     if run_all or "carriers" in args:
         print("Loading carriers JSON...")
-        raw = load_json("CARRIERS.json")
+        raw = load_json(os.path.join(DATA_DIR, "CARRIERS.json"))
         items = raw.get("Items") if isinstance(raw, dict) else raw
         carriers = [sanitize_carrier(c) for c in items]
         batch_insert("CARRIERS_RAW", carriers, conn)
