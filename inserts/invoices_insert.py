@@ -19,6 +19,7 @@ from sqlalchemy import types
 from dotenv import load_dotenv  # type: ignore
 
 import db
+from utils.datetime import to_utc_naive
 
 load_dotenv()
 
@@ -95,8 +96,6 @@ def _s(val: Optional[str]) -> Optional[str]:
     return str(val).strip() or None
 
 
-def _dt(series: pd.Series) -> pd.Series:
-    return pd.to_datetime(series, utc=True, errors="coerce").dt.tz_localize(None)
 
 # --------------------------------------------
 # FLATTENERS
@@ -118,8 +117,8 @@ def flatten_invoices(raw: list[dict], file_id: str) -> pd.DataFrame:
             RUN_TS,
         ])
     df = pd.DataFrame(recs, columns=INVOICE_COLS)
-    df["CREATED_DTTM"] = _dt(df["CREATED_DTTM"])
-    df["BILLED_DATE"] = _dt(df["BILLED_DATE"])
+    df["CREATED_DTTM"] = to_utc_naive(df["CREATED_DTTM"])
+    df["BILLED_DATE"] = to_utc_naive(df["BILLED_DATE"])
     return df
 
 

@@ -17,6 +17,7 @@ from sqlalchemy import types
 from dotenv import load_dotenv  # type: ignore
 
 import db
+from utils.datetime import to_utc_naive
 
 load_dotenv()
 
@@ -100,10 +101,6 @@ def _f(val) -> Optional[float]:
         return None
 
 
-def _dt(series: pd.Series) -> pd.Series:
-    return pd.to_datetime(series, utc=True, errors="coerce").dt.tz_localize(None)
-
-
 def g(d: Optional[dict], *keys):
     for k in keys:
         if not isinstance(d, dict):
@@ -170,7 +167,7 @@ def build_dataframe() -> pd.DataFrame:
         "SCHEDULED_PICKUP", "SCHEDULED_DELIVERY", "PICKED_UP_AT", "DELIVERED_AT",
         "CREATED_DTTM", "UPDATED_DTTM",
     ]:
-        df[col] = _dt(df[col])
+        df[col] = to_utc_naive(df[col])
     return df
 
 # --------------------------------------------
