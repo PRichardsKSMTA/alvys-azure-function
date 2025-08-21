@@ -3,7 +3,7 @@ import os
 from typing import Dict
 
 import azure.functions as func
-import pyodbc
+import db
 
 from main import run_export, run_insert, ENTITIES
 
@@ -11,13 +11,13 @@ from main import run_export, run_insert, ENTITIES
 def main(mytimer: func.TimerRequest) -> None:
     logging.info("Weekly ingest timer triggered")
 
-    conn_str = os.environ["ALVYS_SQL_CONN_STR"]
     query = (
         "SELECT SCAC, TENANT_ID, CLIENT_ID, CLIENT_SECRET, GRANT_TYPE "
         "FROM dbo.ALVYS_CLIENTS"
     )
 
-    with pyodbc.connect(conn_str) as conn:
+    # Connection string handled by db.get_conn()
+    with db.get_conn() as conn:
         cur = conn.cursor()
         cur.execute(query)
         rows = cur.fetchall()

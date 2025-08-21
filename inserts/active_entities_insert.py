@@ -1,6 +1,5 @@
 import os
 import json
-import pyodbc
 import pandas as pd
 import sys
 import time
@@ -8,22 +7,15 @@ from datetime import datetime
 from typing import List, Dict
 from dotenv import load_dotenv  # type: ignore
 
+import db
+
 load_dotenv()
 
 # === Configuration ===
-SQL_SERVER = os.getenv("SQL_SERVER")
-SQL_DATABASE = os.getenv("SQL_DATABASE")
-SQL_USERNAME = os.getenv("SQL_USERNAME")
-SQL_PASSWORD = os.getenv("SQL_PASSWORD")
-DRIVER = "{ODBC Driver 17 for SQL Server}"
+# Database connection handled via db.get_conn()
 DATA_DIR = "alvys_weekly_data"
 BATCH_SIZE = 500
 SCHEMA = "TBXX"
-
-def get_conn():
-    return pyodbc.connect(
-        f"DRIVER={DRIVER};SERVER={SQL_SERVER};DATABASE={SQL_DATABASE};UID={SQL_USERNAME};PWD={SQL_PASSWORD}"
-    )
 
 def load_json(filename: str) -> List[Dict]:
     with open(os.path.join(DATA_DIR, filename), encoding="utf-8") as f:
@@ -151,7 +143,7 @@ def main():
     args = [arg.lower() for arg in sys.argv[1:]]
     run_all = len(args) == 0
 
-    conn = get_conn()
+    conn = db.get_conn()
 
     if run_all or "trailers" in args:
         print("Loading trailers JSON...")
