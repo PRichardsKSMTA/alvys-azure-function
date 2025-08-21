@@ -1,6 +1,7 @@
 """Insert Alvys load data into SQL Server efficiently
 ----------------------------------------------------
 Vectorised pandas -> SQL bulk load with audit column.
+Uses ``db.get_engine()`` for connections.
 This revision fixes the `NoneType is not subscriptable` error by:
 * Introducing a **null-safe truncation helper** `_s(val, max_len)` and using it everywhere (no slicing outside `_s`).
 * Keeps single UTC `INSERTED_DTTM` for every row.
@@ -12,18 +13,16 @@ from datetime import datetime, timezone
 from typing import List, Optional, Any
 
 import pandas as pd
-from sqlalchemy import create_engine, types
+from sqlalchemy import types
 from dotenv import load_dotenv  # type: ignore
+
+import db
 
 load_dotenv()
 
 # --------------------------------------------
 # CONFIG
 # --------------------------------------------
-SQL_SERVER = os.getenv("SQL_SERVER")
-SQL_DATABASE = os.getenv("SQL_DATABASE")
-SQL_USERNAME = os.getenv("SQL_USERNAME")
-SQL_PASSWORD = os.getenv("SQL_PASSWORD")
 
 SCHEMA = "TBXX"
 LOAD_TABLE = f"{SCHEMA}.LOADS_RAW"
@@ -78,13 +77,7 @@ DTYPE_LOADS = {
 # --------------------------------------------
 # ENGINE
 # --------------------------------------------
-
-def get_engine():
-    conn = (
-        f"mssql+pyodbc://{SQL_USERNAME}:{SQL_PASSWORD}@{SQL_SERVER}/{SQL_DATABASE}"
-        f"?driver=ODBC+Driver+17+for+SQL+Server"
-    )
-    return create_engine(conn, fast_executemany=True)
+# Database engine provided by db.get_engine()
 
 # --------------------------------------------
 # HELPERS
@@ -209,7 +202,7 @@ def main():
     print("Loading loads JSON ...")
     df = build_dataframe()
     print(f"Found {len(df):,} loads. Inserting ...")
-    bulk_insert(get_engine(), df)
+    bulk_insert(db.get_engine(), df)
 
 
 if __name__ == "__main__":

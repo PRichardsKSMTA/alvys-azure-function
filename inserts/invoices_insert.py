@@ -1,6 +1,7 @@
 """Insert Alvys invoice data into SQL Server (stable version)
 ----------------------------------------------------------------
 Adds **INSERTED_DTTM** audit column populated with the current UTC timestamp (`datetime2`) for every row in both tables.
+Uses ``db.get_engine()`` for connections.
 
 Other fixes retained:
 * pyodbc `07002` workaround (no `method="multi"`).
@@ -14,18 +15,16 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 import pandas as pd
-from sqlalchemy import create_engine, types
+from sqlalchemy import types
 from dotenv import load_dotenv  # type: ignore
+
+import db
 
 load_dotenv()
 
 # --------------------------------------------
 # CONFIG - customise per environment
 # --------------------------------------------
-SQL_SERVER = os.getenv("SQL_SERVER")
-SQL_DATABASE = os.getenv("SQL_DATABASE")
-SQL_USERNAME = os.getenv("SQL_USERNAME")
-SQL_PASSWORD = os.getenv("SQL_PASSWORD")
 
 SCHEMA = "TBXX"
 INVOICE_TABLE = f"{SCHEMA}.INVOICES_RAW"
@@ -84,12 +83,7 @@ DTYPE_LINE_ITEMS = {
 # DB ENGINE
 # --------------------------------------------
 
-def get_engine():
-    conn = (
-        f"mssql+pyodbc://{SQL_USERNAME}:{SQL_PASSWORD}@{SQL_SERVER}/{SQL_DATABASE}"
-        f"?driver=ODBC+Driver+17+for+SQL+Server"
-    )
-    return create_engine(conn, fast_executemany=True)
+# Database engine provided by db.get_engine()
 
 # --------------------------------------------
 # HELPERS
@@ -211,7 +205,7 @@ def main() -> None:
 
     print(f"Found {len(invoices_df):,} invoices & {len(line_items_df):,} line items. Inserting ...")
 
-    engine = get_engine()
+    engine = db.get_engine()
     bulk_insert(engine, INVOICE_TABLE, invoices_df, DTYPE_INVOICES)
     bulk_insert(engine, LINE_ITEM_TABLE, line_items_df, DTYPE_LINE_ITEMS)
 

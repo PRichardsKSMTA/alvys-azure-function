@@ -3,6 +3,7 @@
 * Vectorised pandas bulk-insert (`fast_executemany=True`).
 * Adds `INSERTED_DTTM` audit column (single UTC timestamp per run).
 * Null-safe helpers prevent slicing errors.
+* Uses ``db.get_engine()`` for connections.
 """
 import os
 import json
@@ -11,18 +12,16 @@ from datetime import datetime, timezone
 from typing import List, Optional, Any
 
 import pandas as pd
-from sqlalchemy import create_engine, types
+from sqlalchemy import types
 from dotenv import load_dotenv  # type: ignore
+
+import db
 
 load_dotenv()
 
 # --------------------------------------------
 # CONFIG
 # --------------------------------------------
-SQL_SERVER = os.getenv("SQL_SERVER")
-SQL_DATABASE = os.getenv("SQL_DATABASE")
-SQL_USERNAME = os.getenv("SQL_USERNAME")
-SQL_PASSWORD = os.getenv("SQL_PASSWORD")
 
 SCHEMA = "TBXX"
 TRIP_TABLE = f"{SCHEMA}.TRIPS_RAW"
@@ -134,11 +133,7 @@ DTYPE_STOPS = {
 # ENGINE
 # --------------------------------------------
 
-def get_engine():
-    conn = (
-        f"mssql+pyodbc://{SQL_USERNAME}:{SQL_PASSWORD}@{SQL_SERVER}/{SQL_DATABASE}?driver=ODBC+Driver+17+for+SQL+Server"
-    )
-    return create_engine(conn, fast_executemany=True)
+# Database engine provided by db.get_engine()
 
 # --------------------------------------------
 # HELPERS
@@ -327,7 +322,7 @@ def bulk_insert(engine, table: str, df: pd.DataFrame, dtype_map: dict):
 def main():
     trips_df, stops_df = build_dfs()
     print(f"Found {len(trips_df):,} trips & {len(stops_df):,} stops. Inserting ...")
-    eng = get_engine()
+    eng = db.get_engine()
     bulk_insert(eng, TRIP_TABLE, trips_df, DTYPE_TRIPS)
     bulk_insert(eng, STOP_TABLE, stops_df, DTYPE_STOPS)
 
