@@ -16,6 +16,7 @@ from sqlalchemy import types
 from dotenv import load_dotenv  # type: ignore
 
 import db
+from utils.datetime import to_utc_naive
 
 load_dotenv()
 
@@ -155,12 +156,6 @@ def _f(val) -> Optional[float]:
         return None
 
 
-def _dt(series: pd.Series | Any) -> pd.Series | Optional[datetime]:
-    if isinstance(series, pd.Series):
-        return pd.to_datetime(series, utc=True, errors="coerce").dt.tz_localize(None)
-    return pd.to_datetime(series, utc=True, errors="coerce").tz_localize(None) if series else None
-
-
 def g(d: Optional[dict], *keys):
     for k in keys:
         if not isinstance(d, dict):
@@ -285,12 +280,12 @@ def build_dfs():
         "PICKUP_DTTM", "DELIVERY_DTTM", "PICKED_UP_DTTM", "DELIVERED_DTTM",
         "CARRIER_ASSIGNED_DTTM", "RELEASED_DTTM", "UPDATED_DTTM",
     ]
-    trips_df[datetime_trip_cols] = trips_df[datetime_trip_cols].apply(_dt)
+    trips_df[datetime_trip_cols] = trips_df[datetime_trip_cols].apply(to_utc_naive)
 
     datetime_stop_cols = [
         "EARLIEST_APPOINTMENT_DTTM", "LATEST_APPOINTMENT_DTTM", "ARRIVED_DTTM", "DEPARTED_DTTM",
     ]
-    stops_df[datetime_stop_cols] = stops_df[datetime_stop_cols].apply(_dt)
+    stops_df[datetime_stop_cols] = stops_df[datetime_stop_cols].apply(to_utc_naive)
 
     return trips_df, stops_df
 
