@@ -12,6 +12,7 @@ import os
 import json
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Optional
 
 import pandas as pd
@@ -27,7 +28,6 @@ load_dotenv()
 # CONFIG - customise per environment
 # --------------------------------------------
 
-DATA_DIR = "alvys_weekly_data"  # folder containing the weekly *.json files
 CHUNK_SIZE = 1_000              # executemany batch size
 
 # One consistent timestamp per run
@@ -176,20 +176,21 @@ def bulk_insert(engine, schema: str, table: str, df: pd.DataFrame, dtypes: dict)
 # MAIN
 # --------------------------------------------
 
-def main(argv: List[str] | None = None) -> None:
+def main(argv: List[str] | None = None, data_dir: Path | None = None) -> None:
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--scac", required=True, dest="schema", help="Target DB schema")
     args = parser.parse_args(argv)
     schema = args.schema.upper()
+    base_dir = Path(data_dir or Path("alvys_weekly_data") / schema)
 
     invoice_frames, line_item_frames = [], []
 
-    for fname in sorted(os.listdir(DATA_DIR)):
+    for fname in sorted(os.listdir(base_dir)):
         if not (fname.startswith("INVOICES_API_") and fname.endswith(".json")):
             continue
-        path = os.path.join(DATA_DIR, fname)
+        path = base_dir / fname
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         if not data:

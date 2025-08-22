@@ -1,8 +1,7 @@
-import os
 import pandas as pd
-import sys
 import time
 from datetime import datetime
+from pathlib import Path
 from typing import List, Dict
 from dotenv import load_dotenv  # type: ignore
 from utils.io import load_json, safe_datetime
@@ -13,7 +12,6 @@ load_dotenv()
 
 # === Configuration ===
 # Database connection handled via db.get_conn()
-DATA_DIR = "alvys_weekly_data"
 BATCH_SIZE = 500
 
 def sanitize_driver(d: Dict) -> Dict:
@@ -120,7 +118,7 @@ def batch_insert(schema: str, table: str, records: List[Dict], conn):
     duration = time.time() - start
     print(f"OK Inserted {len(df)} records into {table} in {duration:.2f} seconds")
 
-def main(argv: List[str] | None = None):
+def main(argv: List[str] | None = None, data_dir: Path | None = None):
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -131,6 +129,7 @@ def main(argv: List[str] | None = None):
     run_all = len(args) == 0
 
     schema = parsed.schema.upper()
+    base_dir = Path(data_dir or Path("alvys_weekly_data") / schema)
 
     conn = db.get_conn()
 
@@ -138,7 +137,7 @@ def main(argv: List[str] | None = None):
         print("Loading trailers JSON...")
         trailers = [
             sanitize_trailer(t)
-            for t in load_json(os.path.join(DATA_DIR, "TRAILERS.json"))
+            for t in load_json(base_dir / "TRAILERS.json")
         ]
         batch_insert(schema, "TRAILERS_RAW", trailers, conn)
 
@@ -146,7 +145,7 @@ def main(argv: List[str] | None = None):
         print("Loading trucks JSON...")
         trucks = [
             sanitize_truck(t)
-            for t in load_json(os.path.join(DATA_DIR, "TRUCKS.json"))
+            for t in load_json(base_dir / "TRUCKS.json")
         ]
         batch_insert(schema, "TRUCKS_RAW", trucks, conn)
 
@@ -154,7 +153,7 @@ def main(argv: List[str] | None = None):
         print("Loading drivers JSON...")
         drivers = [
             sanitize_driver(d)
-            for d in load_json(os.path.join(DATA_DIR, "DRIVERS.json"))
+            for d in load_json(base_dir / "DRIVERS.json")
         ]
         batch_insert(schema, "DRIVERS_RAW", drivers, conn)
 
@@ -162,13 +161,13 @@ def main(argv: List[str] | None = None):
         print("Loading customers JSON...")
         customers = [
             sanitize_customer(c)
-            for c in load_json(os.path.join(DATA_DIR, "CUSTOMERS.json"))
+            for c in load_json(base_dir / "CUSTOMERS.json")
         ]
         batch_insert(schema, "CUSTOMERS_RAW", customers, conn)
 
     if run_all or "carriers" in args:
         print("Loading carriers JSON...")
-        raw = load_json(os.path.join(DATA_DIR, "CARRIERS.json"))
+        raw = load_json(base_dir / "CARRIERS.json")
         items = raw.get("Items") if isinstance(raw, dict) else raw
         carriers = [sanitize_carrier(c) for c in items]
         batch_insert(schema, "CARRIERS_RAW", carriers, conn)
