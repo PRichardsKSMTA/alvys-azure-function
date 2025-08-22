@@ -27,9 +27,6 @@ load_dotenv()
 # CONFIG - customise per environment
 # --------------------------------------------
 
-SCHEMA = "TBXX"
-INVOICE_TABLE = f"{SCHEMA}.INVOICES_RAW"
-LINE_ITEM_TABLE = f"{SCHEMA}.INVOICE_LINE_ITEMS_RAW"
 DATA_DIR = "alvys_weekly_data"  # folder containing the weekly *.json files
 CHUNK_SIZE = 1_000              # executemany batch size
 
@@ -157,15 +154,15 @@ def flatten_line_items(raw: list[dict], file_id: str) -> pd.DataFrame:
 # BULK INSERT
 # --------------------------------------------
 
-def bulk_insert(engine, table: str, df: pd.DataFrame, dtypes: dict):
+def bulk_insert(engine, schema: str, table: str, df: pd.DataFrame, dtypes: dict):
     if df.empty:
         print(f"WARN  Nothing to insert into {table} - DataFrame empty.")
         return
     df = df.where(pd.notnull(df), None)
     start = time.perf_counter()
     df.to_sql(
-        name=table.split(".")[-1],
-        schema=SCHEMA,
+        name=table,
+        schema=schema,
         con=engine,
         if_exists="append",
         index=False,
@@ -173,13 +170,20 @@ def bulk_insert(engine, table: str, df: pd.DataFrame, dtypes: dict):
         dtype=dtypes,
     )
     dur = time.perf_counter() - start
-    print(f"OK {len(df):,} rows inserted into {table} in {dur:.1f}s")
+    print(f"OK {len(df):,} rows inserted into {schema}.{table} in {dur:.1f}s")
 
 # --------------------------------------------
 # MAIN
 # --------------------------------------------
 
-def main() -> None:
+def main(argv: List[str] | None = None) -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scac", required=True, dest="schema", help="Target DB schema")
+    args = parser.parse_args(argv)
+    schema = args.schema.upper()
+
     invoice_frames, line_item_frames = [], []
 
     for fname in sorted(os.listdir(DATA_DIR)):
@@ -205,8 +209,8 @@ def main() -> None:
     print(f"Found {len(invoices_df):,} invoices & {len(line_items_df):,} line items. Inserting ...")
 
     engine = db.get_engine()
-    bulk_insert(engine, INVOICE_TABLE, invoices_df, DTYPE_INVOICES)
-    bulk_insert(engine, LINE_ITEM_TABLE, line_items_df, DTYPE_LINE_ITEMS)
+    bulk_insert(engine, schema, "INVOICES_RAW", invoices_df, DTYPE_INVOICES)
+    bulk_insert(engine, schema, "INVOICE_LINE_ITEMS_RAW", line_items_df, DTYPE_LINE_ITEMS)
 
 
 if __name__ == "__main__":

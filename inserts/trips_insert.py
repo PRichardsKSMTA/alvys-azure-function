@@ -24,9 +24,6 @@ load_dotenv()
 # CONFIG
 # --------------------------------------------
 
-SCHEMA = "TBXX"
-TRIP_TABLE = f"{SCHEMA}.TRIPS_RAW"
-STOP_TABLE = f"{SCHEMA}.TRIP_STOPS_RAW"
 DATA_DIR = "alvys_weekly_data"
 CHUNK_SIZE = 1_000
 RUN_TS = datetime.now(tz=timezone.utc).replace(tzinfo=None)
@@ -293,33 +290,40 @@ def build_dfs():
 # BULK INSERT
 # --------------------------------------------
 
-def bulk_insert(engine, table: str, df: pd.DataFrame, dtype_map: dict):
+def bulk_insert(engine, schema: str, table: str, df: pd.DataFrame, dtype_map: dict):
     if df.empty:
         print(f"WARN  No records for {table}.")
         return
     df = df.where(pd.notnull(df), None)
     start = time.perf_counter()
     df.to_sql(
-        name=table.split(".")[-1],
-        schema=SCHEMA,
+        name=table,
+        schema=schema,
         con=engine,
         if_exists="append",
         index=False,
         chunksize=CHUNK_SIZE,
         dtype=dtype_map,
     )
-    print(f"OK {len(df):,} rows inserted into {table} in {time.perf_counter() - start:.1f}s")
+    print(f"OK {len(df):,} rows inserted into {schema}.{table} in {time.perf_counter() - start:.1f}s")
 
 # --------------------------------------------
 # MAIN
 # --------------------------------------------
 
-def main():
+def main(argv: List[str] | None = None):
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scac", required=True, dest="schema", help="Target DB schema")
+    args = parser.parse_args(argv)
+    schema = args.schema.upper()
+
     trips_df, stops_df = build_dfs()
     print(f"Found {len(trips_df):,} trips & {len(stops_df):,} stops. Inserting ...")
     eng = db.get_engine()
-    bulk_insert(eng, TRIP_TABLE, trips_df, DTYPE_TRIPS)
-    bulk_insert(eng, STOP_TABLE, stops_df, DTYPE_STOPS)
+    bulk_insert(eng, schema, "TRIPS_RAW", trips_df, DTYPE_TRIPS)
+    bulk_insert(eng, schema, "TRIP_STOPS_RAW", stops_df, DTYPE_STOPS)
 
 
 if __name__ == "__main__":

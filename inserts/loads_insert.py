@@ -25,8 +25,6 @@ load_dotenv()
 # CONFIG
 # --------------------------------------------
 
-SCHEMA = "TBXX"
-LOAD_TABLE = f"{SCHEMA}.LOADS_RAW"
 DATA_DIR = "alvys_weekly_data"
 CHUNK_SIZE = 1_000
 RUN_TS = datetime.now(tz=timezone.utc).replace(tzinfo=None)  # naive UTC timestamp
@@ -174,32 +172,40 @@ def build_dataframe() -> pd.DataFrame:
 # BULK INSERT
 # --------------------------------------------
 
-def bulk_insert(engine, df: pd.DataFrame):
+def bulk_insert(engine, schema: str, df: pd.DataFrame):
     if df.empty:
         print("WARN  No load records to insert.")
         return
     df = df.where(pd.notnull(df), None)
     start = time.perf_counter()
+    table = "LOADS_RAW"
     df.to_sql(
-        name=LOAD_TABLE.split(".")[-1],
-        schema=SCHEMA,
+        name=table,
+        schema=schema,
         con=engine,
         if_exists="append",
         index=False,
         chunksize=CHUNK_SIZE,
         dtype=DTYPE_LOADS,
     )
-    print(f"OK {len(df):,} rows inserted into {LOAD_TABLE} in {time.perf_counter() - start:.1f}s")
+    print(f"OK {len(df):,} rows inserted into {schema}.{table} in {time.perf_counter() - start:.1f}s")
 
 # --------------------------------------------
 # MAIN
 # --------------------------------------------
 
-def main():
+def main(argv: List[str] | None = None):
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scac", required=True, dest="schema", help="Target DB schema")
+    args = parser.parse_args(argv)
+    schema = args.schema.upper()
+
     print("Loading loads JSON ...")
     df = build_dataframe()
     print(f"Found {len(df):,} loads. Inserting ...")
-    bulk_insert(db.get_engine(), df)
+    bulk_insert(db.get_engine(), schema, df)
 
 
 if __name__ == "__main__":

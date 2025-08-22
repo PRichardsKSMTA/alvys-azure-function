@@ -15,7 +15,6 @@ load_dotenv()
 # Database connection handled via db.get_conn()
 DATA_DIR = "alvys_weekly_data"
 BATCH_SIZE = 500
-SCHEMA = "TBXX"
 
 def sanitize_driver(d: Dict) -> Dict:
     return {
@@ -97,7 +96,7 @@ def sanitize_carrier(c: Dict) -> Dict:
         "FILE_ID": c.get("FILE_ID")
     }
 
-def batch_insert(table: str, records: List[Dict], conn):
+def batch_insert(schema: str, table: str, records: List[Dict], conn):
     if not records:
         print(f"No data to insert for {table}.")
         return
@@ -109,7 +108,7 @@ def batch_insert(table: str, records: List[Dict], conn):
     df = pd.DataFrame(records)
     columns = ", ".join(df.columns)
     placeholders = ", ".join(["?" for _ in df.columns])
-    insert_sql = f"INSERT INTO {SCHEMA}.{table} ({columns}) VALUES ({placeholders})"
+    insert_sql = f"INSERT INTO {schema}.{table} ({columns}) VALUES ({placeholders})"
 
     cursor = conn.cursor()
     cursor.fast_executemany = True
@@ -121,9 +120,17 @@ def batch_insert(table: str, records: List[Dict], conn):
     duration = time.time() - start
     print(f"OK Inserted {len(df)} records into {table} in {duration:.2f} seconds")
 
-def main():
-    args = [arg.lower() for arg in sys.argv[1:]]
+def main(argv: List[str] | None = None):
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("entities", nargs="*", help="Entity tables to load")
+    parser.add_argument("--scac", required=True, dest="schema", help="Target DB schema")
+    parsed = parser.parse_args(argv)
+    args = [arg.lower() for arg in parsed.entities]
     run_all = len(args) == 0
+
+    schema = parsed.schema.upper()
 
     conn = db.get_conn()
 
@@ -133,7 +140,7 @@ def main():
             sanitize_trailer(t)
             for t in load_json(os.path.join(DATA_DIR, "TRAILERS.json"))
         ]
-        batch_insert("TRAILERS_RAW", trailers, conn)
+        batch_insert(schema, "TRAILERS_RAW", trailers, conn)
 
     if run_all or "trucks" in args:
         print("Loading trucks JSON...")
@@ -141,7 +148,7 @@ def main():
             sanitize_truck(t)
             for t in load_json(os.path.join(DATA_DIR, "TRUCKS.json"))
         ]
-        batch_insert("TRUCKS_RAW", trucks, conn)
+        batch_insert(schema, "TRUCKS_RAW", trucks, conn)
 
     if run_all or "drivers" in args:
         print("Loading drivers JSON...")
@@ -149,7 +156,7 @@ def main():
             sanitize_driver(d)
             for d in load_json(os.path.join(DATA_DIR, "DRIVERS.json"))
         ]
-        batch_insert("DRIVERS_RAW", drivers, conn)
+        batch_insert(schema, "DRIVERS_RAW", drivers, conn)
 
     if run_all or "customers" in args:
         print("Loading customers JSON...")
@@ -157,14 +164,14 @@ def main():
             sanitize_customer(c)
             for c in load_json(os.path.join(DATA_DIR, "CUSTOMERS.json"))
         ]
-        batch_insert("CUSTOMERS_RAW", customers, conn)
+        batch_insert(schema, "CUSTOMERS_RAW", customers, conn)
 
     if run_all or "carriers" in args:
         print("Loading carriers JSON...")
         raw = load_json(os.path.join(DATA_DIR, "CARRIERS.json"))
         items = raw.get("Items") if isinstance(raw, dict) else raw
         carriers = [sanitize_carrier(c) for c in items]
-        batch_insert("CARRIERS_RAW", carriers, conn)
+        batch_insert(schema, "CARRIERS_RAW", carriers, conn)
 
     print("\nOK All data inserted.")
 

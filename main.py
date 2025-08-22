@@ -132,15 +132,11 @@ def run_export(scac: str, entities: List[str], weeks_ago: int, dry_run: bool) ->
 # --------------------------------------------
 
 def run_insert(scac: str, entities: List[str], dry_run: bool) -> None:
-    if dry_run:
-        print("[DRY-RUN] Would insert:", entities, "into schema", scac)
-        return
-
     schema = scac.upper()
 
-    # Provide schema override to the shared loader
-    if hasattr(aei, "SCHEMA"):
-        aei.SCHEMA = schema
+    if dry_run:
+        print("[DRY-RUN] Would insert:", entities, "into schema", schema)
+        return
 
     for ent in entities:
         # 1)  Route active entities to active_entities_insert.py
@@ -148,7 +144,7 @@ def run_insert(scac: str, entities: List[str], dry_run: bool) -> None:
             print(f"-> inserting {ent.upper()} ...")
             _orig = sys.argv  # preserve caller args
             try:
-                sys.argv = ["active_entities_insert.py", ent]
+                sys.argv = ["active_entities_insert.py", ent, "--scac", scac]
                 aei.main()
             finally:
                 sys.argv = _orig
