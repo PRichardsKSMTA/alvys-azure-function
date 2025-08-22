@@ -4,3 +4,4 @@ Requests
 SQLAlchemy
 python-dotenv
 azure-functions
+azure-functions-durable
