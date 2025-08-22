@@ -349,6 +349,8 @@ def cli_run(argv: List[str]) -> None:
     """
     args = [a.lower() for a in argv]
     run_all = len(args) == 0
+    scac = os.getenv("ALVYS_SCAC", "").upper() or "UNKNOWN"
+    out_dir = Path(OUTPUT_DIR) / scac
 
     token = get_token()
     headers = {
@@ -407,7 +409,7 @@ def cli_run(argv: List[str]) -> None:
                 for rec in data:
                     rec["FILE_ID"] = file_id
                 fname = f"{name.upper()}_API_{format_range(start, end)}.json"
-                save_json(data, fname)
+                save_json(data, fname, out_dir)
                 log("OK", name.upper(), "done")
             except Exception as exc:
                 log(
@@ -454,7 +456,7 @@ def cli_run(argv: List[str]) -> None:
             file_id = get_file_id()
             for rec in data:
                 rec["FILE_ID"] = file_id
-            save_json(data, f"{name.upper()}.json")
+            save_json(data, f"{name.upper()}.json", out_dir)
             log("OK", name.upper(), "done")
         except Exception as exc:
             log(
