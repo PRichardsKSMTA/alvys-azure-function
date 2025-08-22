@@ -1,42 +1,38 @@
-import logging
-import os
-from typing import Dict
+"""Durable orchestrator for weekly Alvys data ingest."""
 
-import azure.functions as func
+from typing import Dict, List
+
+import azure.durable_functions as df
 import db
 
-from main import run_export, run_insert, ENTITIES
 
-
-def main(mytimer: func.TimerRequest) -> None:
-    logging.info("Weekly ingest timer triggered")
-
+def orchestrator_function(context: df.DurableOrchestrationContext):
+    """Query client credentials and fan out ingest activities."""
     query = (
         "SELECT SCAC, TENANT_ID, CLIENT_ID, CLIENT_SECRET, GRANT_TYPE "
         "FROM dbo.ALVYS_CLIENTS"
     )
 
-    # Fetch all client credentials using a single connection/cursor
     with db.get_conn() as conn, conn.cursor() as cur:
         cur.execute(query)
-        rows = cur.fetchall()
+        rows: List[tuple] = cur.fetchall()
 
-        for scac, tenant_id, client_id, client_secret, grant_type in rows:
-            try:
-                creds: Dict[str, str] = {
-                    "tenant_id": tenant_id,
-                    "client_id": client_id,
-                    "client_secret": client_secret,
-                    "grant_type": grant_type,
-                }
+    tasks = []
+    for scac, tenant_id, client_id, client_secret, grant_type in rows:
+        creds: Dict[str, str] = {
+            "tenant_id": tenant_id,
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "grant_type": grant_type,
+        }
+        tasks.append(
+            context.call_activity(
+                "ingest_client", {"scac": scac, "credentials": creds}
+            )
+        )
 
-                os.environ["ALVYS_TENANT_ID"] = creds["tenant_id"]
-                os.environ["ALVYS_CLIENT_ID"] = creds["client_id"]
-                os.environ["ALVYS_CLIENT_SECRET"] = creds["client_secret"]
-                os.environ["ALVYS_GRANT_TYPE"] = creds["grant_type"]
+    yield context.task_all(tasks)
 
-                logging.info("Processing %s", scac)
-                run_export(scac, ENTITIES, weeks_ago=0, dry_run=False)
-                run_insert(scac, ENTITIES, dry_run=False)
-            except Exception:
-                logging.exception("Failed processing %s", scac)
+
+main = df.Orchestrator.create(orchestrator_function)
+
