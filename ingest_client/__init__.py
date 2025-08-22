@@ -2,14 +2,16 @@
 
 import logging
 import os
-from typing import Dict
+from pathlib import Path
+from typing import Dict, Any
 
-from main import ENTITIES, run_export, run_insert
+from main import ENTITIES, DATA_DIR, run_export, run_insert
 
 
-def main(params: Dict[str, Dict[str, str]]) -> str:
+def main(params: Dict[str, Any]) -> str:
     scac = params["scac"]
     creds = params["credentials"]
+    data_dir = Path(params.get("data_dir") or (DATA_DIR / scac.upper()))
 
     os.environ["ALVYS_TENANT_ID"] = creds["tenant_id"]
     os.environ["ALVYS_CLIENT_ID"] = creds["client_id"]
@@ -17,7 +19,7 @@ def main(params: Dict[str, Dict[str, str]]) -> str:
     os.environ["ALVYS_GRANT_TYPE"] = creds["grant_type"]
 
     logging.info("Processing %s", scac)
-    run_export(scac, ENTITIES, weeks_ago=0, dry_run=False)
+    run_export(scac, ENTITIES, weeks_ago=0, dry_run=False, output_dir=data_dir)
     run_insert(scac, ENTITIES, dry_run=False)
     return scac
 

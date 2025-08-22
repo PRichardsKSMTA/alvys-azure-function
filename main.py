@@ -41,7 +41,7 @@ from config import get_credentials            # noqa: E402
 import inserts.active_entities_insert as aei          # noqa: E402
 
 # Default output folder shared by export & insert steps
-DATA_DIR = Path("alvys_weekly_data")
+DATA_DIR = ROOT_DIR / "alvys_weekly_data"
 
 # Entities supported by both API export **and** DB insert
 ENTITIES = [
@@ -107,14 +107,33 @@ def normalise(entity_args: Iterable[str]) -> List[str]:
 # EXPORT LOGIC
 # --------------------------------------------
 
-def run_export(scac: str, entities: List[str], weeks_ago: int, dry_run: bool) -> None:
+def run_export(
+    scac: str,
+    entities: List[str],
+    weeks_ago: int,
+    dry_run: bool,
+    output_dir: Path | None = None,
+) -> None:
     start, end = get_last_week_range(weeks_ago)
     print(start)
     print(end)
     creds = get_credentials(scac)
 
+    out_dir = output_dir or DATA_DIR / scac.upper()
+
     if dry_run:
-        print("[DRY-RUN] Would export:", entities, "for", scac, "range", start, "->", end)
+        print(
+            "[DRY-RUN] Would export:",
+            entities,
+            "for",
+            scac,
+            "range",
+            start,
+            "->",
+            end,
+            "into",
+            out_dir,
+        )
         return
 
     # Heavy dependency import only when needed
@@ -124,7 +143,7 @@ def run_export(scac: str, entities: List[str], weeks_ago: int, dry_run: bool) ->
         entities=entities,
         credentials=creds,
         date_range=(start, end),
-        output_dir=DATA_DIR,
+        output_dir=out_dir,
     )
 
 # --------------------------------------------
@@ -177,13 +196,15 @@ def main(argv: List[str] | None = None) -> None:
     ents = normalise(args.entities)
 
     if args.cmd == "export":
-        run_export(args.scac, ents, args.weeks_ago, args.dry_run)
+        out_dir = DATA_DIR / args.scac.upper()
+        run_export(args.scac, ents, args.weeks_ago, args.dry_run, out_dir)
 
     elif args.cmd == "insert":
         run_insert(args.scac, ents, args.dry_run)
 
     elif args.cmd == "export-insert":
-        run_export(args.scac, ents, args.weeks_ago, args.dry_run)
+        out_dir = DATA_DIR / args.scac.upper()
+        run_export(args.scac, ents, args.weeks_ago, args.dry_run, out_dir)
         # Skip insert if export was dry-run but insert wasn't explicitly dry-run
         run_insert(args.scac, ents, args.dry_run)
 
