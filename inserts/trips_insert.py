@@ -9,6 +9,7 @@ import os
 import json
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Optional, Any
 
 import pandas as pd
@@ -24,7 +25,6 @@ load_dotenv()
 # CONFIG
 # --------------------------------------------
 
-DATA_DIR = "alvys_weekly_data"
 CHUNK_SIZE = 1_000
 RUN_TS = datetime.now(tz=timezone.utc).replace(tzinfo=None)
 
@@ -253,13 +253,13 @@ def flatten_stops(trip: dict, file_id: str):
 # BUILD DATAFRAMES
 # --------------------------------------------
 
-def build_dfs():
+def build_dfs(data_dir: Path):
     trip_rows: list[list] = []
     stop_rows: list[list] = []
-    for fname in sorted(os.listdir(DATA_DIR)):
+    for fname in sorted(os.listdir(data_dir)):
         if not fname.startswith("TRIPS_API_") or not fname.endswith(".json"):
             continue
-        with open(os.path.join(DATA_DIR, fname), encoding="utf-8") as f:
+        with open(data_dir / fname, encoding="utf-8") as f:
             data = json.load(f)
         if not data:
             continue
@@ -311,15 +311,16 @@ def bulk_insert(engine, schema: str, table: str, df: pd.DataFrame, dtype_map: di
 # MAIN
 # --------------------------------------------
 
-def main(argv: List[str] | None = None):
+def main(argv: List[str] | None = None, data_dir: Path | None = None):
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--scac", required=True, dest="schema", help="Target DB schema")
     args = parser.parse_args(argv)
     schema = args.schema.upper()
+    base_dir = Path(data_dir or Path("alvys_weekly_data") / schema)
 
-    trips_df, stops_df = build_dfs()
+    trips_df, stops_df = build_dfs(base_dir)
     print(f"Found {len(trips_df):,} trips & {len(stops_df):,} stops. Inserting ...")
     eng = db.get_engine()
     bulk_insert(eng, schema, "TRIPS_RAW", trips_df, DTYPE_TRIPS)

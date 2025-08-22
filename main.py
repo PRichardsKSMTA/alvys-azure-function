@@ -150,23 +150,24 @@ def run_export(
 # INSERT LOGIC
 # --------------------------------------------
 
-def run_insert(scac: str, entities: List[str], dry_run: bool) -> None:
+def run_insert(
+    scac: str,
+    entities: List[str],
+    dry_run: bool,
+    data_dir: Path | None = None,
+) -> None:
     schema = scac.upper()
+    dir_path = Path(data_dir or DATA_DIR / schema)
 
     if dry_run:
-        print("[DRY-RUN] Would insert:", entities, "into schema", schema)
+        print("[DRY-RUN] Would insert:", entities, "into schema", schema, "from", dir_path)
         return
 
     for ent in entities:
         # 1)  Route active entities to active_entities_insert.py
         if ent in ACTIVE_ENTS:
             print(f"-> inserting {ent.upper()} ...")
-            _orig = sys.argv  # preserve caller args
-            try:
-                sys.argv = ["active_entities_insert.py", ent, "--scac", scac]
-                aei.main()
-            finally:
-                sys.argv = _orig
+            aei.main([ent, "--scac", scac], data_dir=dir_path)
             continue
 
         # 2)  Loads, trips, invoices use their dedicated modules
@@ -180,12 +181,7 @@ def run_insert(scac: str, entities: List[str], dry_run: bool) -> None:
             sys.exit(f"X {mod_name} lacks a main() entry-point")
 
         print(f"-> inserting {ent.upper()} ...")
-        _orig = sys.argv
-        try:
-            sys.argv = [f"{ent}_insert.py", "--scac", scac]
-            mod.main()
-        finally:
-            sys.argv = _orig
+        mod.main(["--scac", scac], data_dir=dir_path)
 
 # --------------------------------------------
 # MAIN ENTRY-POINT

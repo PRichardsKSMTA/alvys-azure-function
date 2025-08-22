@@ -20,6 +20,6 @@ def main(params: Dict[str, Any]) -> str:
 
     logging.info("Processing %s", scac)
     run_export(scac, ENTITIES, weeks_ago=0, dry_run=False, output_dir=data_dir)
-    run_insert(scac, ENTITIES, dry_run=False)
+    run_insert(scac, ENTITIES, dry_run=False, data_dir=data_dir)
     return scac
 

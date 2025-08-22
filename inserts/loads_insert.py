@@ -10,6 +10,7 @@ import os
 import json
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import List, Optional, Any
 
 import pandas as pd
@@ -25,7 +26,6 @@ load_dotenv()
 # CONFIG
 # --------------------------------------------
 
-DATA_DIR = "alvys_weekly_data"
 CHUNK_SIZE = 1_000
 RUN_TS = datetime.now(tz=timezone.utc).replace(tzinfo=None)  # naive UTC timestamp
 
@@ -145,12 +145,12 @@ def flatten_load(load: dict, file_id: str):
 # BUILD DATAFRAME
 # --------------------------------------------
 
-def build_dataframe() -> pd.DataFrame:
+def build_dataframe(data_dir: Path) -> pd.DataFrame:
     rows: list[list] = []
-    for fname in sorted(os.listdir(DATA_DIR)):
+    for fname in sorted(os.listdir(data_dir)):
         if not fname.startswith("LOADS_API_") or not fname.endswith(".json"):
             continue
-        with open(os.path.join(DATA_DIR, fname), encoding="utf-8") as f:
+        with open(data_dir / fname, encoding="utf-8") as f:
             data = json.load(f)
         if not data:
             continue
@@ -194,16 +194,17 @@ def bulk_insert(engine, schema: str, df: pd.DataFrame):
 # MAIN
 # --------------------------------------------
 
-def main(argv: List[str] | None = None):
+def main(argv: List[str] | None = None, data_dir: Path | None = None):
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--scac", required=True, dest="schema", help="Target DB schema")
     args = parser.parse_args(argv)
     schema = args.schema.upper()
+    base_dir = Path(data_dir or Path("alvys_weekly_data") / schema)
 
     print("Loading loads JSON ...")
-    df = build_dataframe()
+    df = build_dataframe(base_dir)
     print(f"Found {len(df):,} loads. Inserting ...")
     bulk_insert(db.get_engine(), schema, df)
 
