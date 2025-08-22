@@ -2,6 +2,7 @@
 
 from typing import Dict, List
 
+import logging
 import azure.durable_functions as df
 import db
 
@@ -17,7 +18,8 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         cur.execute(query)
         rows: List[tuple] = cur.fetchall()
 
-    tasks = []
+    entity_id = df.EntityId("failed_scacs", "log")
+
     for scac, tenant_id, client_id, client_secret, grant_type in rows:
         creds: Dict[str, str] = {
             "tenant_id": tenant_id,
@@ -25,13 +27,13 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             "client_secret": client_secret,
             "grant_type": grant_type,
         }
-        tasks.append(
-            context.call_activity(
+        try:
+            yield context.call_activity(
                 "ingest_client", {"scac": scac, "credentials": creds}
             )
-        )
-
-    yield context.task_all(tasks)
+        except Exception as err:  # pylint: disable=broad-except
+            logging.error("Ingest failed for %s: %s", scac, err)
+            context.signal_entity(entity_id, "add", scac)
 
 
 main = df.Orchestrator.create(orchestrator_function)
