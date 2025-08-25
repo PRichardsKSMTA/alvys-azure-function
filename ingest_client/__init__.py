@@ -7,6 +7,7 @@ from typing import Dict, Any
 
 from main import ENTITIES, DATA_DIR, run_export, run_insert
 import db
+from utils.blob import upload_weekly_json
 
 
 def main(params: Dict[str, Any]) -> str:
@@ -23,5 +24,6 @@ def main(params: Dict[str, Any]) -> str:
     run_export(scac, ENTITIES, weeks_ago=0, dry_run=False, output_dir=data_dir)
     run_insert(scac, ENTITIES, dry_run=False, data_dir=data_dir)
     db.exec_client_upload_id(scac)
+    upload_weekly_json(scac, data_dir)
     return scac
 
