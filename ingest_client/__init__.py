@@ -21,9 +21,12 @@ def main(params: Dict[str, Any]) -> str:
     os.environ["ALVYS_GRANT_TYPE"] = creds["grant_type"]
 
     data_dir.mkdir(parents=True, exist_ok=True)
-    removed = [p for p in data_dir.glob("*.json")]
+    removed = list(data_dir.glob("*.json"))
     for json_file in removed:
-        json_file.unlink()
+        try:
+            json_file.unlink(missing_ok=True)
+        except OSError as exc:
+            logging.warning("Could not remove %s: %s", json_file, exc)
     if removed:
         logging.info("Removed %d existing JSON files from %s", len(removed), data_dir)
 
