@@ -1,14 +1,14 @@
 """Durable orchestrator for weekly Alvys data ingest."""
 from typing import Dict, List
 import logging
-from pathlib import Path
 import azure.durable_functions as df
+
+from main import DATA_DIR
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
     # get the list of clients (SCAC + creds) via an activity (I/O outside orchestrator)
     clients: List[Dict[str, str]] = yield context.call_activity("list_clients", None)
 
-    base_dir = Path(__file__).resolve().parent.parent
     failed_entity = df.EntityId("failed_scacs", "log")
 
     # Fan-out sequentially with per-client error capture (simple + durable-safe)
@@ -23,7 +23,7 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         payload = {
             "scac": scac,
             "credentials": creds,
-            "data_dir": str(base_dir / "alvys_weekly_data" / scac),
+            "data_dir": str(DATA_DIR / scac.upper()),
         }
         try:
             yield context.call_activity("ingest_client", payload)
