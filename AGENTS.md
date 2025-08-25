@@ -15,7 +15,7 @@ available export/insert functions.
 
 ## JSON Data
 The `alvys_weekly_data` directory stores JSON responses for each API endpoint.
-These files are **read-only** - they will be overwritten whenever exports run.
+These files are **read‑only** - they will be overwritten whenever exports run.
 Use them only to inspect the structure of returned objects or to debug insert
 failures. Do not manually edit them.
 

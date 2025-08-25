@@ -1,0 +1,47 @@
+```
+└── 📁alvys-api-main
+    └── 📁alvys_weekly_data
+    └── 📁failed_scacs
+        ├── __init__.py
+        ├── function.json
+    └── 📁ingest_client
+        ├── __init__.py
+        ├── function.json
+    └── 📁inserts
+            ├── active_entities_insert.cpython-311.pyc
+            ├── invoices_insert.cpython-311.pyc
+            ├── loads_insert.cpython-311.pyc
+            ├── trips_insert.cpython-311.pyc
+        ├── active_entities_insert.py
+        ├── invoices_insert.py
+        ├── loads_insert.py
+        ├── trips_insert.py
+    └── 📁utils
+            ├── dates.cpython-311.pyc
+            ├── datetime.cpython-311.pyc
+            ├── io.cpython-311.pyc
+        ├── dates.py
+        ├── datetime.py
+        ├── io.py
+    └── 📁weekly_ingest
+            ├── __init__.cpython-311.pyc
+        ├── __init__.py
+        ├── function.json
+    └── 📁weekly_ingest_start
+        ├── __init__.py
+        ├── function.json
+    ├── .funcignore
+    ├── .gitignore
+    ├── AGENTS.md
+    ├── alvys_export.py
+    ├── alvys_insert.py
+    ├── config.py
+    ├── db.py
+    ├── DEPLOYMENT.md
+    ├── dev.example.env
+    ├── host.json
+    ├── local.settings.json
+    ├── main.py
+    ├── README.md
+    └── requirements.txt
+```

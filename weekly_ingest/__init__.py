@@ -1,33 +1,24 @@
 """Durable orchestrator for weekly Alvys data ingest."""
-
 from typing import Dict, List
-
 import logging
 from pathlib import Path
 import azure.durable_functions as df
-import db
-
 
 def orchestrator_function(context: df.DurableOrchestrationContext):
-    """Query client credentials and fan out ingest activities."""
-    query = (
-        "SELECT SCAC, TENANT_ID, CLIENT_ID, CLIENT_SECRET, GRANT_TYPE "
-        "FROM dbo.ALVYS_CLIENTS"
-    )
-
-    with db.get_conn() as conn, conn.cursor() as cur:
-        cur.execute(query)
-        rows: List[tuple] = cur.fetchall()
-
-    entity_id = df.EntityId("failed_scacs", "log")
+    # get the list of clients (SCAC + creds) via an activity (I/O outside orchestrator)
+    clients: List[Dict[str, str]] = yield context.call_activity("list_clients", None)
 
     base_dir = Path(__file__).resolve().parent.parent
-    for scac, tenant_id, client_id, client_secret, grant_type in rows:
-        creds: Dict[str, str] = {
-            "tenant_id": tenant_id,
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "grant_type": grant_type,
+    failed_entity = df.EntityId("failed_scacs", "log")
+
+    # Fan-out sequentially with per-client error capture (simple + durable-safe)
+    for c in clients:
+        scac = c["SCAC"]
+        creds = {
+            "tenant_id": c["TENANT_ID"],
+            "client_id": c["CLIENT_ID"],
+            "client_secret": c["CLIENT_SECRET"],
+            "grant_type": c["GRANT_TYPE"],
         }
         payload = {
             "scac": scac,
@@ -36,10 +27,10 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
         }
         try:
             yield context.call_activity("ingest_client", payload)
-        except Exception as err:  # pylint: disable=broad-except
+        except Exception as err:  # keep going; record who failed
             logging.error("Ingest failed for %s: %s", scac, err)
-            context.signal_entity(entity_id, "add", scac)
+            context.signal_entity(failed_entity, "add", scac)
 
+    return "OK"
 
 main = df.Orchestrator.create(orchestrator_function)
-

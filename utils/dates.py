@@ -23,7 +23,7 @@ from typing import Tuple
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-UTC = timezone.utc  # Single timezone constant so we don't repeat ourselves
+UTC = timezone.utc  # Single timezone constant so we don’t repeat ourselves
 
 
 def _start_of_week(dt: datetime, tz: timezone = UTC) -> datetime:
@@ -37,7 +37,7 @@ def _start_of_week(dt: datetime, tz: timezone = UTC) -> datetime:
         Timezone to normalise the result to (default: UTC).
     """
     dt = dt.astimezone(tz).replace(hour=0, minute=0, second=0, microsecond=0)
-    # In Python's weekday(), Monday = 0 ... Sunday = 6.
+    # In Python’s weekday(), Monday = 0 ... Sunday = 6.
     # We want the most recent Sunday **on or before** dt.
     days_since_sunday = (dt.weekday() + 1) % 7
     return dt - timedelta(days=days_since_sunday)
@@ -59,7 +59,7 @@ def get_last_week_range(weeks_ago: int = 0, tz: timezone = UTC) -> Tuple[datetim
     now = datetime.now(tz)
     start_of_current_week = _start_of_week(now, tz)
 
-    # The week we're interested in is the one *before* the current week.
+    # The week we’re interested in is the one *before* the current week.
     start = start_of_current_week - timedelta(days=7 * (weeks_ago + 1))
     end = start + timedelta(days=7,
                             hours=5,
@@ -74,8 +74,8 @@ def iso_range(
     reference: datetime | None = None,
     tz: timezone = timezone.utc,
 ) -> Tuple[str, str]:
-    """Convenience wrapper that returns the tuple as ISO-8601 strings exactly
-    to the millisecond (*YYYY-MM-DDTHH:MM:SS.mmmZ*)."""
+    """Convenience wrapper that returns the tuple as ISO‑8601 strings exactly
+    to the millisecond (*YYYY‑MM‑DDTHH:MM:SS.mmmZ*)."""
 
     start_dt, end_dt = get_last_week_range(reference, tz)
     return (
