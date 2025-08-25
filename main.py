@@ -39,6 +39,7 @@ if str(ROOT_DIR) not in sys.path:  # ensure project root is importable
 from utils.dates import get_last_week_range  # noqa: E402  - after sys.path tweak
 from config import get_credentials            # noqa: E402
 import inserts.active_entities_insert as aei          # noqa: E402
+import db                                    # noqa: E402
 
 # Default output folder shared by export & insert steps
 DATA_DIR = ROOT_DIR / "alvys_weekly_data"
@@ -81,6 +82,11 @@ def build_parser() -> argparse.ArgumentParser:
                      help="Which entities to insert (default: all)")
     ins.add_argument("--scac", required=True, help="Target DB schema (same as SCAC)")
     ins.add_argument("--dry-run", action="store_true", help="Skip DB writes")
+    ins.add_argument(
+        "--insert-upload-id",
+        action="store_true",
+        help="Record weekly upload ID once inserts finish",
+    )
 
     # export-insert --------------------------------------------------------
     ei = sub.add_parser("export-insert", help="Run export *then* insert")
@@ -89,6 +95,11 @@ def build_parser() -> argparse.ArgumentParser:
     ei.add_argument("--scac", required=True)
     ei.add_argument("--weeks-ago", type=int, default=0)
     ei.add_argument("--dry-run", action="store_true")
+    ei.add_argument(
+        "--insert-upload-id",
+        action="store_true",
+        help="Record weekly upload ID once inserts finish",
+    )
 
     return p
 
@@ -155,6 +166,7 @@ def run_insert(
     entities: List[str],
     dry_run: bool,
     data_dir: Path | None = None,
+    insert_upload_id: bool = False,
 ) -> None:
     schema = scac.upper()
     dir_path = Path(data_dir or DATA_DIR / schema)
@@ -183,6 +195,9 @@ def run_insert(
         print(f"-> inserting {ent.upper()} ...")
         mod.main(["--scac", scac], data_dir=dir_path)
 
+    if insert_upload_id:
+        db.exec_client_upload_id(scac)
+
 # --------------------------------------------
 # MAIN ENTRY-POINT
 # --------------------------------------------
@@ -196,13 +211,23 @@ def main(argv: List[str] | None = None) -> None:
         run_export(args.scac, ents, args.weeks_ago, args.dry_run, out_dir)
 
     elif args.cmd == "insert":
-        run_insert(args.scac, ents, args.dry_run)
+        run_insert(
+            args.scac,
+            ents,
+            args.dry_run,
+            insert_upload_id=args.insert_upload_id,
+        )
 
     elif args.cmd == "export-insert":
         out_dir = DATA_DIR / args.scac.upper()
         run_export(args.scac, ents, args.weeks_ago, args.dry_run, out_dir)
         # Skip insert if export was dry-run but insert wasn't explicitly dry-run
-        run_insert(args.scac, ents, args.dry_run)
+        run_insert(
+            args.scac,
+            ents,
+            args.dry_run,
+            insert_upload_id=args.insert_upload_id,
+        )
 
 
 if __name__ == "__main__":
