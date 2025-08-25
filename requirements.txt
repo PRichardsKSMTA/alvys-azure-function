@@ -5,3 +5,4 @@ SQLAlchemy
 python-dotenv
 azure-functions
 azure-functions-durable
+azure-storage-blob

@@ -56,6 +56,8 @@ In **Configuration -> Application settings**, add/update:
 - `WEBSITE_TIME_ZONE` **not set** (Azure default UTC)   ← ensures the CRON runs at local midnight year‑round
 - `LOCAL_TZ (not used)`            ← used by the Python code to compute local week boundaries
 - `ALVYS_SQL_CONN_STR=Driver={ODBC Driver 18 for SQL Server};Server=...`
+- `ALVYS_BLOB_CONN_STR=DefaultEndpointsProtocol=https;AccountName=...`
+- `ALVYS_BLOB_PATH=container-name`
 
 Restart the Function App after saving.
 

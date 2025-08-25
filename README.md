@@ -29,6 +29,10 @@ ALVYS_GRANT_TYPE="value"
 
 # SQL Server connection string
 ALVYS_SQL_CONN_STR="DRIVER={ODBC Driver 17 for SQL Server};SERVER=server;DATABASE=db;UID=user;PWD=pwd"
+
+# Azure Blob Storage
+ALVYS_BLOB_CONN_STR="DefaultEndpointsProtocol=https;AccountName=..."
+ALVYS_BLOB_PATH="container-name"
 ```
 
 Place a copy of this file at the project root as `.env` and fill in the real
