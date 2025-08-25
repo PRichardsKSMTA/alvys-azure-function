@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import importlib
+import os
 import sys
 from dotenv import load_dotenv  # type: ignore
 from pathlib import Path
@@ -42,7 +43,9 @@ import inserts.active_entities_insert as aei          # noqa: E402
 import db                                    # noqa: E402
 
 # Default output folder shared by export & insert steps
-DATA_DIR = ROOT_DIR / "alvys_weekly_data"
+DATA_DIR = Path(
+    os.environ.get("ALVYS_DATA_DIR", "/tmp/alvys_weekly_data")
+)
 
 # Entities supported by both API export **and** DB insert
 ENTITIES = [
