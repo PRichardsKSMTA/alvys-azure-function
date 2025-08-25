@@ -20,6 +20,13 @@ def main(params: Dict[str, Any]) -> str:
     os.environ["ALVYS_CLIENT_SECRET"] = creds["client_secret"]
     os.environ["ALVYS_GRANT_TYPE"] = creds["grant_type"]
 
+    data_dir.mkdir(parents=True, exist_ok=True)
+    removed = [p for p in data_dir.glob("*.json")]
+    for json_file in removed:
+        json_file.unlink()
+    if removed:
+        logging.info("Removed %d existing JSON files from %s", len(removed), data_dir)
+
     logging.info("Processing %s", scac)
     run_export(scac, ENTITIES, weeks_ago=0, dry_run=False, output_dir=data_dir)
     run_insert(scac, ENTITIES, dry_run=False, data_dir=data_dir)
