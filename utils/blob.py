@@ -7,8 +7,8 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-from azure.core.exceptions import ResourceExistsError
-from azure.storage.blob import BlobServiceClient, ContentSettings
+from azure.core.exceptions import ResourceExistsError # type: ignore
+from azure.storage.blob import BlobServiceClient, ContentSettings # type: ignore
 
 
 # Azure requires: 3–63 chars, lowercase letters/numbers/hyphens, must start/end alphanumeric
