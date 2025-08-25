@@ -11,9 +11,7 @@ from typing import Optional
 import requests
 
 _ENDPOINT = (
-    "https://prod-168.westus.logic.azure.com:443/"
-    "workflows/c1616e65b35d40238ae046c60d5b372a/triggers/manual/paths/"
-    "invoke?api-version=2016-06-01"
+    "https://prod-168.westus.logic.azure.com:443/workflows/c1616e65b35d40238ae046c60d5b372a/triggers/manual/paths/invoke?api-version=2016-06-01"
 )
 
 
