@@ -7,6 +7,7 @@ SQLAlchemy engines using the ``ALVYS_SQL_CONN_STR`` environment variable.
 from __future__ import annotations
 import os
 import time
+from datetime import datetime, timedelta
 import urllib.parse
 import pyodbc
 from sqlalchemy import create_engine
@@ -58,3 +59,18 @@ def get_engine(**kw):
     conn_str = urllib.parse.quote_plus(_upgrade_driver_and_tls(_get_conn_str()))
     url = f"mssql+pyodbc:///?odbc_connect={conn_str}"
     return create_engine(url, **kw)
+
+
+def exec_client_upload_id(scac: str) -> None:
+    """Execute ``dbo.INSERT_CLIENT_UPLOAD_ID`` for ``scac`` using this week's Monday."""
+    today = datetime.utcnow().date()
+    monday = today - timedelta(days=today.weekday())
+    upload_id = monday.strftime("%Y%m%d")
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "EXEC dbo.INSERT_CLIENT_UPLOAD_ID @SCAC=?, @Uploadid=?",
+            scac,
+            upload_id,
+        )
+        conn.commit()
+
