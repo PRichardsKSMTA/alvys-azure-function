@@ -33,6 +33,9 @@ ALVYS_SQL_CONN_STR="DRIVER={ODBC Driver 17 for SQL Server};SERVER=server;DATABAS
 # Azure Blob Storage
 ALVYS_BLOB_CONN_STR="DefaultEndpointsProtocol=https;AccountName=..."
 ALVYS_BLOB_CONTAINER="container-name"
+
+# Logic App callback
+LOGIC_APP_ENDPOINT="https://<logic-app-callback-url>?sig=..."
 ```
 
 Place a copy of this file at the project root as `.env` and fill in the real
