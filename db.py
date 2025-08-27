@@ -9,8 +9,11 @@ import os
 import time
 from datetime import datetime, timedelta
 import urllib.parse
+import logging
+import traceback
 import pyodbc
 from sqlalchemy import create_engine
+from utils.alerts import send_error_notification
 
 def _get_conn_str() -> str:
     conn_str = os.getenv("ALVYS_SQL_CONN_STR")
@@ -66,11 +69,27 @@ def exec_client_upload_id(scac: str) -> None:
     today = datetime.utcnow().date()
     monday = today - timedelta(days=today.weekday())
     upload_id = monday.strftime("%Y%m%d")
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "EXEC dbo.INSERT_CLIENT_UPLOAD_ID @SCAC=?, @Uploadid=?",
-            scac,
-            upload_id,
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            logging.info(
+                "Executing INSERT_CLIENT_UPLOAD_ID for %s with upload_id %s",
+                scac,
+                upload_id,
+            )
+            cur.execute(
+                "EXEC dbo.INSERT_CLIENT_UPLOAD_ID @SCAC=?, @Uploadid=?",
+                scac,
+                upload_id,
+            )
+            conn.commit()
+            logging.info(
+                "Successfully executed INSERT_CLIENT_UPLOAD_ID for %s", scac
+            )
+    except Exception as exc:  # pragma: no cover - notify and re-raise
+        stack = traceback.format_exc()
+        logging.error(
+            "Failed to execute INSERT_CLIENT_UPLOAD_ID for %s: %s", scac, exc
         )
-        conn.commit()
+        send_error_notification("exec_client_upload_id", str(exc), stack)
+        raise
 

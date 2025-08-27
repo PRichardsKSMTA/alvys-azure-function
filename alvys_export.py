@@ -29,6 +29,7 @@ from typing import Dict, Iterable, List, Tuple
 import requests
 from dotenv import load_dotenv  # type: ignore
 from config import build_auth_urls
+from utils.alerts import send_error_notification
 
 # --------------------------------------------
 # ENV & CONSTANTS
@@ -275,10 +276,12 @@ def export_endpoints(
             save_json(data, fname, output_dir)
             log("OK", name.upper(), "done")
         except Exception as exc:
-            log(
-                f"!!  Failed to export {name.upper()} -> "
-                f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
+            trace = traceback.format_exc()
+            msg = (
+                f"Failed to export {name.upper()} -> {exc.__class__.__name__}: {exc}"
             )
+            log(f"!!  {msg}\n{trace}")
+            send_error_notification("alvys_export", msg, trace)
 
     # ----- Non-range endpoints -----
     def do_simple(entity: str, payload: Dict):
@@ -298,10 +301,12 @@ def export_endpoints(
             save_json(data, f"{entity}.json", output_dir)
             log("OK", entity, "done")
         except Exception as exc:
-            log(
-                f"!!  Failed to export {entity} -> "
-                f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
+            trace = traceback.format_exc()
+            msg = (
+                f"Failed to export {entity} -> {exc.__class__.__name__}: {exc}"
             )
+            log(f"!!  {msg}\n{trace}")
+            send_error_notification("alvys_export", msg, trace)
 
     do_simple("DRIVERS", {"name": "", "employeeId": "", "fleetName": "", "status": []})
     do_simple(
@@ -412,10 +417,12 @@ def cli_run(argv: List[str]) -> None:
                 save_json(data, fname, out_dir)
                 log("OK", name.upper(), "done")
             except Exception as exc:
-                log(
-                    f"!!  Failed to export {name.upper()} -> "
-                    f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
+                trace = traceback.format_exc()
+                msg = (
+                    f"Failed to export {name.upper()} -> {exc.__class__.__name__}: {exc}"
                 )
+                log(f"!!  {msg}\n{trace}")
+                send_error_notification("alvys_export", msg, trace)
 
     # Simple (non-range) endpoints
     simple_endpoints = {
@@ -459,10 +466,12 @@ def cli_run(argv: List[str]) -> None:
             save_json(data, f"{name.upper()}.json", out_dir)
             log("OK", name.upper(), "done")
         except Exception as exc:
-            log(
-                f"!!  Failed to export {name.upper()} -> "
-                f"{exc.__class__.__name__}: {exc}\n{traceback.format_exc()}"
+            trace = traceback.format_exc()
+            msg = (
+                f"Failed to export {name.upper()} -> {exc.__class__.__name__}: {exc}"
             )
+            log(f"!!  {msg}\n{trace}")
+            send_error_notification("alvys_export", msg, trace)
 
 
 if __name__ == "__main__":
