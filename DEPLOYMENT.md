@@ -58,6 +58,7 @@ In **Configuration -> Application settings**, add/update:
 - `ALVYS_SQL_CONN_STR=Driver={ODBC Driver 18 for SQL Server};Server=...`
 - `ALVYS_BLOB_CONN_STR=DefaultEndpointsProtocol=https;AccountName=...`
 - `ALVYS_BLOB_CONTAINER=container-name`
+- `LOGIC_APP_ENDPOINT=https://<logic-app-callback-url>?sig=...`
 
 Restart the Function App after saving.
 
