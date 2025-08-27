@@ -11,7 +11,7 @@ from typing import Optional
 
 import requests
 
-_ENDPOINT = os.environ["LOGIC_APP_ENDPOINT"]
+_ENDPOINT = os.environ["POWER_AUTOMATE_ENDPOINT"]
 
 
 def send_error_notification(
@@ -20,7 +20,7 @@ def send_error_notification(
     stack_trace: str,
     correlation_id: Optional[str] = None,
 ) -> None:
-    """POST a standardized error payload to the Logic App endpoint."""
+    """POST a standardized error payload to the Power Automate flow endpoint."""
     payload = {
         "status": "error",
         "functionName": function_name,

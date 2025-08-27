@@ -1,4 +1,4 @@
-"""Activity to relay error notifications to the Logic App."""
+"""Activity to relay error notifications to the Power Automate flow."""
 from typing import Dict
 
 from utils.alerts import send_error_notification
