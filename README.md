@@ -33,6 +33,9 @@ ALVYS_SQL_CONN_STR="DRIVER={ODBC Driver 17 for SQL Server};SERVER=server;DATABAS
 # Azure Blob Storage
 ALVYS_BLOB_CONN_STR="DefaultEndpointsProtocol=https;AccountName=..."
 ALVYS_BLOB_CONTAINER="container-name"
+
+# Power Automate flow callback
+POWER_AUTOMATE_ENDPOINT="https://<power-automate-flow-url>?sig=..."
 ```
 
 Place a copy of this file at the project root as `.env` and fill in the real

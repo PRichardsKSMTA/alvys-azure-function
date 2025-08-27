@@ -4,15 +4,14 @@
 from __future__ import annotations
 
 import logging
+import os
 import uuid
 from datetime import datetime
 from typing import Optional
 
 import requests
 
-_ENDPOINT = (
-    "https://prod-168.westus.logic.azure.com:443/workflows/c1616e65b35d40238ae046c60d5b372a/triggers/manual/paths/invoke?api-version=2016-06-01"
-)
+_ENDPOINT = os.environ["POWER_AUTOMATE_ENDPOINT"]
 
 
 def send_error_notification(
@@ -21,7 +20,7 @@ def send_error_notification(
     stack_trace: str,
     correlation_id: Optional[str] = None,
 ) -> None:
-    """POST a standardized error payload to the Logic App endpoint."""
+    """POST a standardized error payload to the Power Automate flow endpoint."""
     payload = {
         "status": "error",
         "functionName": function_name,
@@ -33,6 +32,7 @@ def send_error_notification(
         },
     }
     try:
-        requests.post(_ENDPOINT, json=payload, timeout=10)
+        response = requests.post(_ENDPOINT, json=payload, timeout=10)
+        response.raise_for_status()
     except Exception as exc:  # pragma: no cover - best effort only
         logging.error("Failed to send error notification: %s", exc)
