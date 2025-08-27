@@ -32,6 +32,14 @@ def orchestrator_function(context: df.DurableOrchestrationContext):
             except Exception as err:  # keep going; record who failed
                 logging.error("Ingest failed for %s: %s", scac, err)
                 context.signal_entity(failed_entity, "add", scac)
+                yield context.call_activity(
+                    "notify_failure",
+                    {
+                        "functionName": "ingest_client",
+                        "message": f"Ingest failed for {scac}: {err}",
+                        "stackTrace": getattr(err, "stack_trace", str(err)),
+                    },
+                )
 
         return "OK"
     except Exception as err:
