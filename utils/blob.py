@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -44,9 +45,25 @@ def _iter_json_files(directory: Path) -> Iterable[Path]:
     return directory.glob("*.json")
 
 
-def upload_weekly_json(scac: str, local_dir: Path) -> None:
+def _format_run_folder(run_date: date | None) -> str:
+    actual_date = run_date or datetime.now(timezone.utc).date()
+    return actual_date.strftime("%Y%m%d")
+
+
+def _has_nested_path(relative_path: str) -> bool:
+    if not relative_path:
+        return False
+    return "/" in relative_path
+
+
+def upload_weekly_json(scac: str, local_dir: Path, *, run_date: date | None = None) -> None:
     """
     Upload the week's JSON files for ``scac`` to Azure Blob Storage.
+
+    Files are written beneath ``<scac>/<YYYYMMDD>/`` where the folder name is
+    derived from ``run_date`` (or today in UTC when omitted). Legacy flat blobs
+    under ``<scac>/`` are moved into ``<scac>/Archive/`` so older runs remain
+    accessible.
 
     Environment variables:
       ALVYS_BLOB_CONN_STR  - Azure Storage connection string
@@ -65,32 +82,66 @@ def upload_weekly_json(scac: str, local_dir: Path) -> None:
         pass
 
     scac = scac.lower()
+    run_folder = _format_run_folder(run_date)
     prefix = f"{scac}/"
     archive_prefix = f"{scac}/Archive/"
+    run_prefix = f"{prefix}{run_folder}/"
 
-    # Archive existing blobs under scac/ -> scac/Archive/
-    for blob in container.list_blobs(name_starts_with=prefix):
+    # Archive legacy blobs that live directly under scac/ so we can maintain
+    # a clean tree of dated folders without losing history.
+    for blob in container.list_blobs(name_starts_with=prefix, include=["metadata"]):
         if blob.name.startswith(archive_prefix):
+            continue
+        if blob.name.endswith("/"):
+            # Hierarchical namespace accounts expose directory placeholders that
+            # cannot be deleted while they still contain children. We only care
+            # about actual blobs, so skip the virtual directory entries.
+            continue
+        if getattr(blob, "metadata", {}).get("hdi_isfolder") == "true":
+            # Azure Data Lake Gen2 surfaces folders with metadata flag. Skip
+            # them so we don't attempt to delete a non-empty directory.
+            continue
+        relative_name = blob.name[len(prefix):]
+        if not relative_name:
+            # Ignore empty names (shouldn't happen, but defensive)
+            continue
+        if _has_nested_path(relative_name):
+            # Anything already under a dated (or other nested) directory should
+            # stay in place. Only the legacy flat structure needs archiving.
             continue
         src_client = container.get_blob_client(blob)
         data = src_client.download_blob().readall()
-        dest_name = archive_prefix + blob.name[len(prefix):]
+        dest_name = archive_prefix + relative_name
         dest_client = container.get_blob_client(dest_name)
         dest_client.upload_blob(data, overwrite=True)
-        src_client.delete_blob()
+        try:
+            src_client.delete_blob()
+        except ResourceExistsError as exc:  # pragma: no cover - safety net
+            if getattr(exc, "error_code", None) == "DirectoryIsNotEmpty":
+                # Another client may have created children after we listed, in
+                # which case the directory delete would fail. Leave it in place
+                # so the orchestration can continue uploading the new blobs.
+                continue
+            raise
 
     # Upload current week's files with JSON content type
     content_settings = ContentSettings(content_type="application/json")
     any_file = False
     for path in _iter_json_files(local_dir):
         any_file = True
-        dest_name = prefix + path.name
+        dest_name = run_prefix + path.name
         with path.open("rb") as fh:
-            container.get_blob_client(dest_name).upload_blob(
-                fh,
-                overwrite=True,
-                content_settings=content_settings,
-            )
+            blob_client = container.get_blob_client(dest_name)
+            try:
+                blob_client.upload_blob(
+                    fh,
+                    overwrite=False,
+                    content_settings=content_settings,
+                )
+            except ResourceExistsError as exc:
+                raise FileExistsError(
+                    f"Blob already exists for this run: {dest_name}"
+                ) from exc
     if not any_file:
         # No files is considered a hard error to avoid silently doing nothing.
         raise FileNotFoundError(f"No *.json files found in {local_dir}")
