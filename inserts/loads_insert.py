@@ -33,7 +33,7 @@ RUN_TS = datetime.now(tz=timezone.utc).replace(tzinfo=None)  # naive UTC timesta
 # COLUMNS & SQL TYPES
 # --------------------------------------------
 LOAD_COLS: List[str] = [
-    "ID", "LOAD_NUMBER", "ORDER_NUMBER", "LOAD_STATUS", "CUSTOMER_ID",
+    "ID", "LOAD_NUMBER", "ORDER_NUMBER", "LOAD_STATUS", "CUSTOMER_ID", "CUSTOMER_NUMBER",
     "FLEET_ID", "FLEET_NAME", "INVOICE_AS", "LINEHAUL_AMOUNT",
     "FUEL_SURCHARGE", "ACCESSORIALS_AMOUNT", "CUSTOMER_RATE",
     "CUSTOMER_MILEAGE", "MILEAGE_SOURCE", "TOTAL_WEIGHT",
@@ -49,6 +49,7 @@ DTYPE_LOADS = {
     "ORDER_NUMBER": types.VARCHAR(100),
     "LOAD_STATUS": types.VARCHAR(50),
     "CUSTOMER_ID": types.VARCHAR(100),
+    "CUSTOMER_NUMBER": types.VARCHAR(100),
     "FLEET_ID": types.VARCHAR(100),
     "FLEET_NAME": types.VARCHAR(100),
     "INVOICE_AS": types.VARCHAR(50),
@@ -117,6 +118,7 @@ def flatten_load(load: dict, file_id: str):
         _s(load.get("OrderNumber"), 100),
         _s(load.get("Status"), 50),
         _s(load.get("CustomerId"), 100),
+        _s(load.get("CustomerNumber"), 100),
         _s(g(load, "Fleet", "Id"), 100),
         _s(g(load, "Fleet", "Name"), 100),
         _s(load.get("InvoiceAs"), 50),
