@@ -50,20 +50,13 @@ def _format_run_folder(run_date: date | None) -> str:
     return actual_date.strftime("%Y%m%d")
 
 
-def _has_nested_path(relative_path: str) -> bool:
-    if not relative_path:
-        return False
-    return "/" in relative_path
-
-
 def upload_weekly_json(scac: str, local_dir: Path, *, run_date: date | None = None) -> None:
     """
     Upload the week's JSON files for ``scac`` to Azure Blob Storage.
 
     Files are written beneath ``<scac>/<YYYYMMDD>/`` where the folder name is
-    derived from ``run_date`` (or today in UTC when omitted). Legacy flat blobs
-    under ``<scac>/`` are moved into ``<scac>/Archive/`` so older runs remain
-    accessible.
+    derived from ``run_date`` (or today in UTC when omitted). Each run stores
+    data in its own dated directory so previous weeks remain untouched.
 
     Environment variables:
       ALVYS_BLOB_CONN_STR  - Azure Storage connection string
@@ -84,45 +77,7 @@ def upload_weekly_json(scac: str, local_dir: Path, *, run_date: date | None = No
     scac = scac.lower()
     run_folder = _format_run_folder(run_date)
     prefix = f"{scac}/"
-    archive_prefix = f"{scac}/Archive/"
     run_prefix = f"{prefix}{run_folder}/"
-
-    # Archive legacy blobs that live directly under scac/ so we can maintain
-    # a clean tree of dated folders without losing history.
-    for blob in container.list_blobs(name_starts_with=prefix, include=["metadata"]):
-        if blob.name.startswith(archive_prefix):
-            continue
-        if blob.name.endswith("/"):
-            # Hierarchical namespace accounts expose directory placeholders that
-            # cannot be deleted while they still contain children. We only care
-            # about actual blobs, so skip the virtual directory entries.
-            continue
-        if getattr(blob, "metadata", {}).get("hdi_isfolder") == "true":
-            # Azure Data Lake Gen2 surfaces folders with metadata flag. Skip
-            # them so we don't attempt to delete a non-empty directory.
-            continue
-        relative_name = blob.name[len(prefix):]
-        if not relative_name:
-            # Ignore empty names (shouldn't happen, but defensive)
-            continue
-        if _has_nested_path(relative_name):
-            # Anything already under a dated (or other nested) directory should
-            # stay in place. Only the legacy flat structure needs archiving.
-            continue
-        src_client = container.get_blob_client(blob)
-        data = src_client.download_blob().readall()
-        dest_name = archive_prefix + relative_name
-        dest_client = container.get_blob_client(dest_name)
-        dest_client.upload_blob(data, overwrite=True)
-        try:
-            src_client.delete_blob()
-        except ResourceExistsError as exc:  # pragma: no cover - safety net
-            if getattr(exc, "error_code", None) == "DirectoryIsNotEmpty":
-                # Another client may have created children after we listed, in
-                # which case the directory delete would fail. Leave it in place
-                # so the orchestration can continue uploading the new blobs.
-                continue
-            raise
 
     # Upload current week's files with JSON content type
     content_settings = ContentSettings(content_type="application/json")
