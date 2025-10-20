@@ -50,7 +50,7 @@ STOP_COLS: List[str] = [
     "IS_APPOINTMENT_CONFIRMED", "EARLIEST_APPOINTMENT_DTTM", "LATEST_APPOINTMENT_DTTM",
     "STREET_ADDRESS", "CITY", "STATE_PROVINCE", "POSTAL_CD", "LATITUDE", "LONGITUDE",
     "STOP_STATUS", "STOP_TYPE", "STOP_SCHEDULE_TYPE", "LOADING_TYPE",
-    "ARRIVED_DTTM", "DEPARTED_DTTM", "FILE_ID", "INSERTED_DTTM",
+    "ARRIVED_DTTM", "DEPARTED_DTTM", "FILE_ID", "INSERTED_DTTM", "LOC_ID", "LOC_NAME",
 ]
 
 # NOTE: Many VARCHAR lengths chosen generically; adjust if DB schema differs.
@@ -125,6 +125,8 @@ DTYPE_STOPS = {
     "DEPARTED_DTTM": types.DateTime(),
     "FILE_ID": types.VARCHAR(50),
     "INSERTED_DTTM": types.DateTime(),
+    "LOC_ID": types.VARCHAR(100),
+    "LOC_NAME": types.VARCHAR(200),
 }
 
 # --------------------------------------------
@@ -246,6 +248,8 @@ def flatten_stops(trip: dict, file_id: str):
             stop.get("DepartedAt"),
             file_id,
             RUN_TS,
+            _s(stop.get("CompanyNumber"), 100),
+            _s(stop.get("CompanyName"), 200),
         ])
     return stops
 
