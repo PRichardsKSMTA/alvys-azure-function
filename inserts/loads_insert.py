@@ -18,7 +18,7 @@ from sqlalchemy import types
 from dotenv import load_dotenv  # type: ignore
 
 import db
-from datetime_utc import to_utc_naive
+from utils.datetime_utc import to_utc_naive
 
 load_dotenv()
 
