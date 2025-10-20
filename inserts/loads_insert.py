@@ -33,14 +33,14 @@ RUN_TS = datetime.now(tz=timezone.utc).replace(tzinfo=None)  # naive UTC timesta
 # COLUMNS & SQL TYPES
 # --------------------------------------------
 LOAD_COLS: List[str] = [
-    "ID", "LOAD_NUMBER", "ORDER_NUMBER", "LOAD_STATUS", "CUSTOMER_ID", "CUSTOMER_NUMBER",
+    "ID", "LOAD_NUMBER", "ORDER_NUMBER", "LOAD_STATUS", "CUSTOMER_ID",
     "FLEET_ID", "FLEET_NAME", "INVOICE_AS", "LINEHAUL_AMOUNT",
     "FUEL_SURCHARGE", "ACCESSORIALS_AMOUNT", "CUSTOMER_RATE",
     "CUSTOMER_MILEAGE", "MILEAGE_SOURCE", "TOTAL_WEIGHT",
     "SCHEDULED_PICKUP", "SCHEDULED_DELIVERY", "PICKED_UP_AT",
     "DELIVERED_AT", "CREATED_DTTM", "CUSTOMER_SERVICE_REP_ID",
     "CUSTOMER_SALES_AGENT_ID", "UPDATED_DTTM", "IS_DELETED", "FILE_ID", "INSERTED_DTTM",
-    "LOAD_TYPE",
+    "LOAD_TYPE", "BILLTO_ID",
 ]
 
 DTYPE_LOADS = {
@@ -49,7 +49,6 @@ DTYPE_LOADS = {
     "ORDER_NUMBER": types.VARCHAR(100),
     "LOAD_STATUS": types.VARCHAR(50),
     "CUSTOMER_ID": types.VARCHAR(100),
-    "CUSTOMER_NUMBER": types.VARCHAR(100),
     "FLEET_ID": types.VARCHAR(100),
     "FLEET_NAME": types.VARCHAR(100),
     "INVOICE_AS": types.VARCHAR(50),
@@ -72,6 +71,7 @@ DTYPE_LOADS = {
     "FILE_ID": types.VARCHAR(50),
     "INSERTED_DTTM": types.DateTime(),
     "LOAD_TYPE": types.VARCHAR(50),
+    "BILLTO_ID": types.VARCHAR(100),
 }
 
 # --------------------------------------------
@@ -118,7 +118,6 @@ def flatten_load(load: dict, file_id: str):
         _s(load.get("OrderNumber"), 100),
         _s(load.get("Status"), 50),
         _s(load.get("CustomerId"), 100),
-        _s(load.get("CustomerNumber"), 100),
         _s(g(load, "Fleet", "Id"), 100),
         _s(g(load, "Fleet", "Name"), 100),
         _s(load.get("InvoiceAs"), 50),
@@ -141,6 +140,7 @@ def flatten_load(load: dict, file_id: str):
         file_id,  # already truncated to 50 below
         RUN_TS,
         _s(load.get("LoadType"), 50),
+        _s(load.get("CustomerNumber"), 100),
     ]
 
 # --------------------------------------------
